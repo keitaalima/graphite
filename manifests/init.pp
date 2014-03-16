@@ -3,18 +3,26 @@
 class graphite {
 	include graphite::web
 	include graphite::whisper
-	include graphite carbon
+	include graphite::carbon
+  include graphite::graphite_packages
 	
 }
 
 
 class graphite::web {
 
-  package {
-    'bitmap':
-      ensure => present;
-    'graphite-web':
-      ensure => present;
+  package {'bitmap':
+      ensure => present,
+      require => Package ["graphite"]
+  }
+
+  package {'graphite-web':
+      ensure => present,
+  }
+
+  package {'graphite':
+    ensure => present,
+    provider => pip,
   }
 
   service { 'httpd':
@@ -31,7 +39,7 @@ class graphite::web {
     group   => "root",
     mode    => "0644",
     notify  => Service["httpd"],
-    content => template("graphite/local_settings.py.erb");
+    content => template("graphite/local_settings.py.erb"),
    }
 
 }
@@ -40,7 +48,12 @@ class graphite::web {
 class graphite::carbon {
 
   package {'carbon':
-    ensure => present;
+    ensure => present,
+  }
+
+   package {'carbon':
+    ensure => present,
+    provider => pip,
   }
 
   file {'/opt/graphite/lib/carbon/util.py':
@@ -112,8 +125,8 @@ class graphite::carbon {
 }
 
 class graphite::whisper { 
-    package {'whisper':
-      ensure => present;
-  }
-
+   package {'graphite':
+      ensure => present,
+      provider => pip,
+    }
 }
