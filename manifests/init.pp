@@ -45,7 +45,7 @@ class graphite::carbon {
   file {'/opt/graphite/lib/carbon/util.py':
     ensure => present,
     source => 'puppet://modules/graphite/util.py',
-    mode '0755'
+    mode =>'0755'
     notify => Package['carbon']
   }
 
@@ -70,7 +70,7 @@ class graphite::carbon {
     notify => Package['carbon']
    }
 
-  file {'/etc/httpd/conf/extra/vhosts-enabled/graphite-vhosts.conf'
+  file {'/etc/httpd/conf/extra/vhosts-enabled/graphite-vhosts.conf':
     ensure => present
     source => 'puppet://modules/graphite/graphite-vhosts.conf'
     mode => '0755' ,
