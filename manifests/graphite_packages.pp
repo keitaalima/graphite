@@ -1,6 +1,6 @@
 #graphiteaphite packages
 
-class graphite::graphite_packages inherits{
+class graphite::graphite_packages {
 	
 	package { 'bitmap':
     ensure => installed,

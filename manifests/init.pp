@@ -4,7 +4,6 @@ class graphite {
 	include graphite::web
 	include graphite::whisper
 	include graphite::carbon
-  include graphite::graphite_packages
 }
 
 class graphite::web {
