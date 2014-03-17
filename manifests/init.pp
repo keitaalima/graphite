@@ -3,18 +3,18 @@
 class graphite {
 	include graphite::web
 	include graphite::whisper
-	include graphite carbon
-	
+	include graphite::carbon
+  include graphite::graphite_packages
 }
 
-
 class graphite::web {
+  package {'bitmap':
+    ensure => present,
+  }
 
-  package {
-    'bitmap':
-      ensure => present;
-    'graphite-web':
-      ensure => present;
+  package {'graphite':
+    ensure => present,
+    provider => 'pip',
   }
 
   service { 'httpd':
@@ -24,23 +24,23 @@ class graphite::web {
     hasstatus  => true,
   }
 
-   file {"local_settings.py":
+  file {"local_settings.py":
     path => "/etc/graphite-web/local_settings.py",
     ensure => file,
     owner   => "root",
     group   => "root",
     mode    => "0644",
     notify  => Service["httpd"],
-    content => template("graphite/local_settings.py.erb");
+    content => template("graphite/local_settings.py.erb"),
    }
 
 }
 
-
 class graphite::carbon {
 
   package {'carbon':
-    ensure => present;
+    ensure => present,
+    provider => pip,
   }
 
   file {'/opt/graphite/lib/carbon/util.py':
@@ -50,43 +50,43 @@ class graphite::carbon {
     notify => Package['carbon']
   }
 
-  service { 'carbon':
-    ensure     => running,
-    enable     => true,
-    hasrestart => true,
-    hasstatus  => true,
-    require    => Package['carbon'],
-  }
-
   file { '/etc/init.p/carbon-cache':
-   ensure => present
-   source => 'puppet:///modules/graphite/carbon-cache',
-   mode => '0755',
-   notify => Service['carbon-cache']
+    ensure => present
+    source => 'puppet:///modules/graphite/carbon-cache-init.sh',
+    mode => '0755',
+    notify => Package['carbon']
    }
 
   file { '/etc/init.p/carbon-relay':
     ensure => present
-    source => 'puppet:///modules/graphite/carbon-relay',
+    source => 'puppet:///modules/graphite/carbon-relay-init.sh',
     mode => '0755',
-    notify => Service['carbon-relay']
+    notify => Package['carbon']
    }
 
   file { '/etc/init.p/carbon-aggregator':
     ensure => present
-    source => 'puppet:///modules/graphite/carbon-aggregator',
+    source => 'puppet:///modules/graphite/carbon-aggregator-init.sh',
     mode => '0755',
-    notify => Service['carbon-aggregator']
+    notify => Package['carbon']
    }
 
-   file {'/etc/httpd/conf/extra/vhosts-enabled/graphite-vhosts.conf'
+  file {'/etc/httpd/conf/extra/vhosts-enabled/graphite-vhosts.conf'
     ensure => present
     source => 'puppet://modules/graphite/graphite-vhosts.conf'
     mode => '0755' ,
     notify => Service['httpd']
    }
 
-   file {'/opt/graphite/carbon.conf':
+  service { 'carbon':
+    ensure     => running,
+    enable     => true,
+##  hasrestart => true,
+    hasstatus  => true,
+    require    => File['/etc/init.d/carbon-cache'],
+  }
+
+  file {'/opt/graphite/carbon.conf':
     ensure => present
     source => 'puppet:///modules/graphite/carbon.conf',
     mode => '0755' ,
@@ -101,19 +101,19 @@ class graphite::carbon {
   file {'/opt/graphite/storage-aggregation.conf':
     ensure => present
     source => 'puppet:///modules/graphite/storage-aggregation.conf',
-    mode => '0755' ,
+    mode => '0755',
    }
 
   file {'/opt/graphite/storage-schemas.conf':
     ensure => present
     source => 'puppet:///modules/graphite/storage-schemas.conf',
-    mode => '0755' ,
+    mode => '0755',
    }
 }
 
 class graphite::whisper { 
-    package {'whisper':
-      ensure => present;
+  package {'whisper':
+    ensure => present,
+    provider => pip,
   }
-
 }
