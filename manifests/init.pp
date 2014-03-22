@@ -7,22 +7,15 @@ class graphite {
 }
 
 class graphite::web {
-  package {'bitmap':
-    ensure => present,
-  }
+#  package {'bitmap':
+#    ensure => present,
+#  }
 
-  package {'bitmap':
-      ensure => present,
-      require => Package ["graphite"]
-  }
 
-  package {'graphite-web':
-      ensure => present,
-  }
-
-  package {'graphite':
+  package {"graphite-web":
     ensure => present,
     provider => pip,
+#    require =>  Package['python-pip'],
  }
 
   service { 'httpd':
@@ -31,6 +24,10 @@ class graphite::web {
     hasrestart => true,
     hasstatus  => true,
   }
+
+  file {'/opt/graphite':
+    ensure => directory,
+   } 
 
   file {"local_settings.py":
     path => "/etc/graphite-web/local_settings.py",
@@ -42,19 +39,46 @@ class graphite::web {
     content => template("graphite/local_settings.py.erb"),
    }
 
+    
+
 }
 
 class graphite::carbon {
 
+   file {'/opt/Twisted-13.2.0.tar.bz2':
+      source => 'puppet:///modules/graphite/Twisted-13.2.0.tar.bz2',
+      notify => Exec["unpack Twisted"],
+    }
+
+   exec {'unpack Twisted':
+    command => '/bin/tar -xjvf /opt/Twisted-13.2.0.tar.bz2',
+    cwd => '/opt',
+    refreshonly => true,
+    notify => Exec["install Twisted"],
+  }
+
+    exec {'install Twisted':
+        cwd => '/opt/Twisted-13.2.0',
+        command => '/usr/bin/python setup.py install',
+        creates => '/opt/Twisted-13.2.0/setup.py',
+        path => '/usr/bin/python',
+    }
+
   
   package {'carbon':
+    ensure => present,
+    provider => pip,
+    require => File['/opt/graphite'],
+  }
+
+  package {"daemonize":
     ensure => present,
     provider => pip,
   }
 
   file {'/opt/graphite/lib/carbon/util.py':
     ensure => present,
-    source => 'puppet://modules/graphite/util.py',
+    source => 'puppet:///modules/graphite/util.py',
     mode =>'0755'
     notify => Package['carbon']
   }
@@ -82,12 +106,12 @@ class graphite::carbon {
 
   file {'/etc/httpd/conf/extra/vhosts-enabled/graphite-vhosts.conf':
     ensure => present
-    source => 'puppet://modules/graphite/graphite-vhosts.conf'
-    mode => '0755' ,
+    source => 'puppet:///modules/graphite/graphite-vhosts.conf'
+    mode => '0644' ,
     notify => Service['httpd']
    }
 
-  service { 'carbon':
+  service { 'carbon-cache':
     ensure     => running,
     enable     => true,
 ##  hasrestart => true,
@@ -98,31 +122,33 @@ class graphite::carbon {
   file {'/opt/graphite/carbon.conf':
     ensure => present
     source => 'puppet:///modules/graphite/carbon.conf',
-    mode => '0755' ,
+    mode => '0644' ,
    }
 
   file {'/opt/graphite/graphite.wsgi':
     ensure => present
     source => 'puppet:///modules/graphite/graphite.wsgi',
-    mode => '0755' ,
+    mode => '0644' ,
    }
 
   file {'/opt/graphite/storage-aggregation.conf':
     ensure => present
     source => 'puppet:///modules/graphite/storage-aggregation.conf',
-    mode => '0755',
+    mode => '0644',
    }
 
   file {'/opt/graphite/storage-schemas.conf':
     ensure => present
     source => 'puppet:///modules/graphite/storage-schemas.conf',
-    mode => '0755',
+    mode => '0644',
    }
 }
 
 class graphite::whisper { 
+
   package {'whisper':
     ensure => present,
     provider => pip,
+    require => File['/opt/graphite'],
   }
 }
